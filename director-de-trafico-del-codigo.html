@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>El Director de Tráfico del Código — Estructuras de Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-deep:#0a0f1e;
+  --bg-panel:#121b32;
+  --bg-panel-2:#1a2745;
+  --secuencial:#5ad1ff;
+  --condicional:#ff7a3d;
+  --repetitiva:#ffcc33;
+  --cream:#f4ecd8;
+  --ink:#1c1730;
+  --danger:#ff4d5e;
+  --success:#38f89a;
+  --line:rgba(90,209,255,0.25);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;background:var(--bg-deep);overflow:hidden;}
+body{font-family:'VT323',monospace;color:var(--cream);-webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none;width:100%;height:100%;}
+.pixel{font-family:'Press Start 2P',monospace;}
+button{font-family:inherit;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+
+#cabinet{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,#0f172c 0%,#040609 100%);padding:clamp(4px,1.5vw,20px);}
+#screen{position:relative;width:100%;height:100%;max-width:1200px;max-height:900px;background:var(--bg-deep);border-radius:18px;border:3px solid #24345c;box-shadow:0 0 0 6px #070a10,0 0 0 9px #2e3f6e,0 0 40px rgba(90,209,255,0.15) inset,0 20px 60px rgba(0,0,0,0.7);overflow:hidden;}
+#marquee{position:absolute;top:0;left:0;right:0;height:26px;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#182444,#0f172c);border-bottom:2px solid #24345c;z-index:50;font-size:9px;letter-spacing:1.5px;color:var(--repetitiva);text-shadow:0 0 8px var(--repetitiva);gap:10px;text-align:center;padding:0 6px;}
+#marquee .bulb{width:5px;height:5px;border-radius:50%;background:var(--secuencial);box-shadow:0 0 6px var(--secuencial);animation:chase 1.2s infinite steps(2);flex-shrink:0;}
+#marquee .bulb:nth-child(odd){animation-delay:.6s;background:var(--condicional);box-shadow:0 0 6px var(--condicional);}
+@keyframes chase{50%{opacity:.15;}}
+
+#scanlines{position:absolute;inset:0;pointer-events:none;z-index:40;background:repeating-linear-gradient(180deg,rgba(0,0,0,0.18) 0px,rgba(0,0,0,0.18) 1px,transparent 2px,transparent 3px);mix-blend-mode:multiply;}
+#vignette{position:absolute;inset:0;pointer-events:none;z-index:41;box-shadow:inset 0 0 140px rgba(0,0,0,0.75);}
+#flicker{position:absolute;inset:0;pointer-events:none;z-index:39;background:#fff;opacity:0;animation:flick 6s infinite;}
+@keyframes flick{0%,96%,100%{opacity:0;}97%{opacity:.02;}98%{opacity:0;}99%{opacity:.03;}}
+
+.view{position:absolute;top:26px;left:0;right:0;bottom:0;display:none;flex-direction:column;padding:clamp(10px,2vw,26px);overflow-y:auto;}
+.view.active{display:flex;}
+.view::-webkit-scrollbar{width:8px;}
+.view::-webkit-scrollbar-thumb{background:var(--bg-panel-2);border-radius:4px;}
+
+#view-start{align-items:center;justify-content:center;text-align:center;gap:14px;background:radial-gradient(circle at 50% 20%, rgba(90,209,255,0.10), transparent 60%),var(--bg-deep);}
+.title-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;}
+#title-icon{width:min(46vw,150px);}
+.title-line1{font-size:clamp(10px,2.2vw,15px);color:var(--secuencial);letter-spacing:2px;text-shadow:0 0 10px var(--secuencial);}
+.title-line2{font-size:clamp(15px,4vw,29px);color:var(--repetitiva);text-shadow:0 0 18px var(--repetitiva),0 0 40px rgba(255,204,51,.5);animation:pulseTitle 1.8s ease-in-out infinite;line-height:1.3;}
+@keyframes pulseTitle{0%,100%{transform:scale(1);}50%{transform:scale(1.03);}}
+.title-line3{font-size:clamp(10px,1.8vw,13px);color:var(--condicional);letter-spacing:1px;}
+.subtitle{font-size:clamp(15px,2.4vw,21px);color:var(--cream);opacity:.88;max-width:600px;line-height:1.35;}
+.menu-col{display:flex;flex-direction:column;gap:12px;width:min(86vw,360px);margin-top:2px;}
+.arcade-btn{font-family:'Press Start 2P',monospace;font-size:clamp(10px,1.6vw,13px);color:var(--ink);background:linear-gradient(180deg,var(--repetitiva),#c99a1a);border:none;border-radius:10px;padding:16px 10px;cursor:pointer;box-shadow:0 5px 0 #8a6a10,0 8px 18px rgba(0,0,0,.5);transition:transform .08s, box-shadow .08s;letter-spacing:1px;}
+.arcade-btn:active{transform:translateY(4px);box-shadow:0 1px 0 #8a6a10;}
+.arcade-btn.secondary{background:linear-gradient(180deg,var(--secuencial),#1a7fae);color:#04182a;box-shadow:0 5px 0 #0d5678,0 8px 18px rgba(0,0,0,.5);}
+.arcade-btn.secondary:active{box-shadow:0 1px 0 #0d5678;}
+.arcade-btn.ghost{background:linear-gradient(180deg,#1a2745,#0f172c);color:var(--secuencial);box-shadow:0 5px 0 #0a0f1e,0 8px 18px rgba(0,0,0,.5);border:1px solid var(--line);}
+.arcade-btn.ghost:active{box-shadow:0 1px 0 #0a0f1e;}
+.blink{animation:blk 1s steps(2) infinite;}
+@keyframes blk{50%{opacity:0;}}
+#mute-toggle{position:absolute;top:36px;right:14px;z-index:45;background:var(--bg-panel);border:1px solid var(--line);color:var(--secuencial);border-radius:8px;padding:8px 10px;font-size:16px;cursor:pointer;}
+
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px;flex-wrap:wrap;}
+.panel-title{font-family:'Press Start 2P',monospace;font-size:clamp(11px,2vw,16px);color:var(--secuencial);text-shadow:0 0 8px var(--secuencial);}
+.back-btn{font-family:'Press Start 2P',monospace;font-size:10px;color:var(--cream);background:var(--bg-panel-2);border:1px solid var(--line);border-radius:6px;padding:8px 12px;cursor:pointer;}
+
+#view-howto .content{background:var(--bg-panel);border:1px solid var(--line);border-radius:12px;padding:16px 20px;font-size:clamp(15px,2.2vw,19px);line-height:1.5;max-width:820px;margin:0 auto;width:100%;}
+#view-howto .content h3{color:var(--repetitiva);font-family:'Press Start 2P',monospace;font-size:12px;margin:16px 0 8px;}
+#view-howto .content p{margin:6px 0;}
+#view-howto .step{display:flex;gap:10px;align-items:flex-start;margin:10px 0;}
+.step-num{font-family:'Press Start 2P',monospace;font-size:12px;color:var(--ink);background:var(--secuencial);border-radius:50%;min-width:26px;height:26px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.note-box{background:#1a2745;border:1px dashed var(--secuencial);border-radius:8px;padding:10px 12px;margin-top:14px;font-size:16px;color:var(--repetitiva);}
+
+#enc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;padding-bottom:20px;}
+.enc-card{background:var(--bg-panel);border:1px solid var(--line);border-radius:10px;padding:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:transform .1s, border-color .1s;}
+.enc-card:active{transform:scale(.96);}
+.enc-card:hover{border-color:var(--secuencial);}
+.enc-card svg{width:64px;height:64px;}
+.enc-card .name{font-size:14px;text-align:center;color:var(--repetitiva);line-height:1.15;}
+#enc-modal{position:absolute;inset:0;z-index:60;background:rgba(4,6,12,0.88);display:none;align-items:center;justify-content:center;padding:20px;}
+#enc-modal.active{display:flex;}
+.modal-box{background:var(--bg-panel);border:2px solid var(--secuencial);border-radius:14px;max-width:520px;width:100%;padding:20px;text-align:center;max-height:88%;overflow-y:auto;box-shadow:0 0 30px rgba(90,209,255,0.25);}
+.modal-box svg{width:110px;height:110px;margin-bottom:8px;}
+.modal-box h2{font-family:'Press Start 2P',monospace;font-size:13px;color:var(--repetitiva);margin:6px 0;}
+.modal-box h3{color:var(--secuencial);font-size:20px;margin:2px 0 10px;}
+.modal-box p{font-size:18px;line-height:1.4;text-align:left;}
+
+#view-game{padding-top:8px;}
+#hud{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;background:var(--bg-panel);border:1px solid var(--line);border-radius:10px;padding:8px 14px;margin-bottom:10px;font-family:'Press Start 2P',monospace;font-size:clamp(9px,1.4vw,12px);}
+.hud-item{display:flex;align-items:center;gap:6px;}
+.hud-item span.val{color:var(--repetitiva);}
+#timerbar-wrap{width:100%;height:8px;background:var(--bg-panel-2);border-radius:4px;overflow:hidden;margin-top:6px;}
+#timerbar{height:100%;background:linear-gradient(90deg,var(--success),var(--repetitiva),var(--danger));width:100%;transition:width 1s linear;}
+
+#game-body{display:flex;flex:1;gap:14px;min-height:0;flex-wrap:wrap;}
+#clue-panel{flex:1 1 280px;min-width:250px;background:var(--cream);color:var(--ink);border-radius:12px;padding:16px;position:relative;box-shadow:0 6px 0 #b6ab8a, 0 10px 20px rgba(0,0,0,.4);display:flex;flex-direction:column;gap:8px;border:6px solid #dccfa0;}
+#clue-panel::before{content:"EXPEDIENTE";position:absolute;top:-12px;left:14px;background:var(--condicional);color:#fff;font-family:'Press Start 2P',monospace;font-size:9px;padding:4px 8px;border-radius:4px;letter-spacing:1px;}
+#clue-stage{font-family:'Press Start 2P',monospace;font-size:10px;color:#1a4a7a;}
+#clue-icon{width:100px;height:100px;align-self:center;filter:brightness(0) opacity(.75);}
+#clue-icon.revealed{filter:none;}
+#clue-text{font-size:clamp(18px,2.4vw,22px);line-height:1.35;flex:1;}
+#clue-feedback{min-height:26px;font-family:'Press Start 2P',monospace;font-size:11px;text-align:center;}
+#clue-feedback.ok{color:#1a7a5e;}
+#clue-feedback.bad{color:#c22;}
+#hint-btn{align-self:center;background:var(--secuencial);color:#04182a;border:none;border-radius:8px;padding:8px 16px;font-size:16px;cursor:pointer;}
+
+#answer-panel{flex:1.2 1 300px;min-width:260px;background:radial-gradient(ellipse at 50% 50%,#132244 0%,#070a14 80%);border:2px solid #24345c;border-radius:12px;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:center;gap:14px;padding:20px;}
+.ans-btn{font-family:'Press Start 2P',monospace;font-size:clamp(11px,2vw,14px);color:var(--cream);background:var(--bg-panel);border:2px solid var(--line);border-radius:10px;padding:16px 12px;cursor:pointer;text-align:center;transition:transform .1s,border-color .1s;}
+.ans-btn:active{transform:scale(.97);}
+.ans-btn.wrong{border-color:var(--danger);animation:shakeBtn .3s;background:#3a1418;}
+.ans-btn.correct{border-color:var(--success);background:#123a26;}
+@keyframes shakeBtn{0%,100%{transform:translateX(0);}25%{transform:translateX(-6px);}75%{transform:translateX(6px);}}
+.shake{animation:screenshake .35s;}
+@keyframes screenshake{0%,100%{transform:translate(0,0);}25%{transform:translate(-6px,3px);}50%{transform:translate(6px,-3px);}75%{transform:translate(-4px,2px);}}
+
+#view-win,#view-lose{align-items:center;justify-content:center;text-align:center;gap:14px;}
+#final-icon{width:min(36vw,150px);}
+#win-text{max-width:640px;font-size:clamp(15px,2.2vw,20px);line-height:1.5;background:var(--bg-panel);border:1px solid var(--line);border-radius:12px;padding:16px 20px;text-align:left;}
+.confetti-piece{position:absolute;top:-10px;width:8px;height:14px;opacity:.9;animation:fall linear forwards;}
+@keyframes fall{to{transform:translateY(110vh) rotate(400deg);opacity:0;}}
+#score-final{font-family:'Press Start 2P',monospace;color:var(--repetitiva);font-size:clamp(15px,3vw,22px);text-shadow:0 0 10px var(--repetitiva);}
+
+.credits{margin-top:6px;font-size:clamp(12px,1.8vw,15px);color:var(--secuencial);display:flex;flex-direction:column;align-items:center;gap:4px;}
+.credits a{color:var(--repetitiva);text-decoration:none;display:inline-flex;align-items:center;gap:5px;}
+.credits a:hover{text-decoration:underline;}
+.credits svg{width:14px;height:14px;fill:var(--repetitiva);}
+
+@media (max-width:640px){
+  #game-body{flex-direction:column;}
+  #answer-panel{min-height:220px;}
+  #clue-panel{min-height:220px;}
+}
+</style>
+</head>
+<body>
+<div id="cabinet">
+<div id="screen">
+  <div id="marquee"><span class="bulb"></span> EL DIRECTOR DE TRÁFICO DEL CÓDIGO <span class="bulb"></span> ESTRUCTURAS DE CONTROL Y TOMA DE DECISIONES <span class="bulb"></span></div>
+  <button id="mute-toggle" aria-label="Silenciar música">🔊</button>
+
+  <!-- START -->
+  <div class="view active" id="view-start">
+    <div class="title-wrap">
+      <svg id="title-icon" viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="18" fill="none" stroke="#5ad1ff" stroke-width="6"/>
+        <polygon points="60,15 75,35 45,35" fill="#ff7a3d"/>
+        <path d="M60,78 a18,18 0 1,0 -18,-18" fill="none" stroke="#ffcc33" stroke-width="6"/>
+        <polygon points="42,60 50,52 50,68" fill="#ffcc33"/>
+      </svg>
+      <div class="title-line1 pixel">FUNDAMENTOS DE INFORMÁTICA</div>
+      <div class="title-line2 pixel">DIRECTOR DE TRÁFICO<br>DEL CÓDIGO</div>
+      <div class="title-line3 pixel">SECUENCIA · CONDICIONAL · REPETITIVA</div>
+    </div>
+    <p class="subtitle">La lógica lineal ya no alcanza: la realidad cambia, y el código debe decidir y repetir. Ponete en el lugar del programador, analizá cada caso y elegí la estructura de control correcta antes que se acabe el tiempo.</p>
+    <div class="menu-col">
+      <button class="arcade-btn" id="btn-play">▶ JUGAR</button>
+      <button class="arcade-btn secondary" id="btn-howto">❓ CÓMO SE JUEGA</button>
+      <button class="arcade-btn ghost" id="btn-enc">📖 GLOSARIO DE CLASE</button>
+    </div>
+    <p class="pixel blink" style="font-size:9px;color:var(--secuencial);margin-top:2px;">TOCÁ UN BOTÓN PARA EMPEZAR</p>
+    <div class="credits">
+      <span>Juego creado por Marquez Camila Araceli</span>
+      <a href="https://www.instagram.com/marquecami/#" target="_blank" rel="noopener noreferrer">
+        <svg viewBox="0 0 24 24"><path d="M12 2c-2.72 0-3.06.01-4.12.06-1.06.05-1.79.22-2.43.47-.66.26-1.22.6-1.77 1.16-.56.55-.9 1.11-1.16 1.77-.25.64-.42 1.37-.47 2.43C2 8.94 2 9.28 2 12s.01 3.06.06 4.12c.05 1.06.22 1.79.47 2.43.26.66.6 1.22 1.16 1.77.55.56 1.11.9 1.77 1.16.64.25 1.37.42 2.43.47C8.94 22 9.28 22 12 22s3.06-.01 4.12-.06c1.06-.05 1.79-.22 2.43-.47.66-.26 1.22-.6 1.77-1.16.56-.55.9-1.11 1.16-1.77.25-.64.42-1.37.47-2.43.05-1.06.06-1.4.06-4.12s-.01-3.06-.06-4.12c-.05-1.06-.22-1.79-.47-2.43-.26-.66-.6-1.22-1.16-1.77-.55-.56-1.11-.9-1.77-1.16-.64-.25-1.37-.42-2.43-.47C15.06 2.01 14.72 2 12 2zm0 1.8c2.67 0 2.99.01 4.04.06.98.04 1.5.21 1.85.34.47.18.8.4 1.15.75.35.35.57.68.75 1.15.13.36.3.87.34 1.85.05 1.05.06 1.37.06 4.04s-.01 2.99-.06 4.04c-.04.98-.21 1.5-.34 1.85-.18.47-.4.8-.75 1.15-.35.35-.68.57-1.15.75-.36.13-.87.3-1.85.34-1.05.05-1.37.06-4.04.06s-2.99-.01-4.04-.06c-.98-.04-1.5-.21-1.85-.34-.47-.18-.8-.4-1.15-.75-.35-.35-.57-.68-.75-1.15-.13-.36-.3-.87-.34-1.85C3.81 14.99 3.8 14.67 3.8 12s.01-2.99.06-4.04c.04-.98.21-1.5.34-1.85.18-.47.4-.8.75-1.15.35-.35.68-.57 1.15-.75.36-.13.87-.3 1.85-.34C9.01 3.81 9.33 3.8 12 3.8zm0 3.05a5.15 5.15 0 100 10.3 5.15 5.15 0 000-10.3zm0 8.5a3.35 3.35 0 110-6.7 3.35 3.35 0 010 6.7zm5.35-8.7a1.2 1.2 0 11-2.4 0 1.2 1.2 0 012.4 0z"/></svg>
+        @marquecami
+      </a>
+    </div>
+  </div>
+
+  <!-- HOWTO -->
+  <div class="view" id="view-howto">
+    <div class="panel-header"><span class="panel-title">CÓMO SE JUEGA</span><button class="back-btn" data-back="start">← VOLVER</button></div>
+    <div class="content">
+      <div class="step"><div class="step-num">1</div><p>En cada expediente vas a leer una situación de la vida real o de una clase de programación.</p></div>
+      <div class="step"><div class="step-num">2</div><p>Elegí, entre las opciones, qué estructura de control (o qué símbolo, o qué regla) corresponde a esa situación.</p></div>
+      <div class="step"><div class="step-num">3</div><p>Tenés un tiempo límite por pregunta. Si se acaba, o si te equivocás demasiadas veces, perdés una vida.</p></div>
+      <div class="step"><div class="step-num">4</div><p>Sumás puntos por acertar rápido y sin ayuda. Usá la pista si te trabás, pero te resta puntaje.</p></div>
+      <h3>LAS TRES ESTRUCTURAS</h3>
+      <p><b style="color:var(--secuencial)">Secuencial:</b> un paso detrás de otro, en línea recta.</p>
+      <p><b style="color:var(--condicional)">Condicional:</b> el programa elige un camino según una pregunta SÍ/NO.</p>
+      <p><b style="color:var(--repetitiva)">Repetitiva:</b> la misma acción se repite hasta cumplir una condición.</p>
+      <div class="note-box">📜 3 vidas. Si las perdés todas, el turno termina y podés reintentar.</div>
+    </div>
+  </div>
+
+  <!-- ENCICLOPEDIA -->
+  <div class="view" id="view-enc">
+    <div class="panel-header"><span class="panel-title">GLOSARIO DE CLASE</span><button class="back-btn" data-back="start">← VOLVER</button></div>
+    <div id="enc-grid"></div>
+  </div>
+  <div id="enc-modal"><div class="modal-box" id="enc-modal-box"></div></div>
+
+  <!-- GAME -->
+  <div class="view" id="view-game">
+    <div id="hud">
+      <div class="hud-item">CASO <span class="val" id="hud-round">1/1</span></div>
+      <div class="hud-item">PUNTAJE <span class="val" id="hud-score">0</span></div>
+      <div class="hud-item">VIDAS <span class="val" id="hud-lives">❤❤❤</span></div>
+    </div>
+    <div id="timerbar-wrap"><div id="timerbar"></div></div>
+    <div id="game-body" style="margin-top:10px;">
+      <div id="clue-panel">
+        <div id="clue-stage" class="pixel">EXPEDIENTE 1 DE 1</div>
+        <svg id="clue-icon" viewBox="0 0 120 120"></svg>
+        <div id="clue-text">...</div>
+        <div id="clue-feedback"></div>
+        <button id="hint-btn">💡 PISTA</button>
+      </div>
+      <div id="answer-panel"></div>
+    </div>
+  </div>
+
+  <!-- WIN -->
+  <div class="view" id="view-win">
+    <svg id="final-icon" viewBox="0 0 120 120"><circle cx="60" cy="60" r="45" fill="none" stroke="#ffcc33" stroke-width="6"/><polygon points="60,30 68,52 92,52 72,66 80,90 60,75 40,90 48,66 28,52 52,52" fill="#ff7a3d"/></svg>
+    <div class="title-line2 pixel">¡SISTEMA RESUELTO!</div>
+    <div id="score-final">PUNTAJE: 0</div>
+    <div id="win-text"></div>
+    <div class="menu-col">
+      <button class="arcade-btn" id="btn-play-again">▶ JUGAR DE NUEVO</button>
+      <button class="arcade-btn ghost" data-back="start">🏠 MENÚ PRINCIPAL</button>
+    </div>
+    <div class="credits">
+      <span>Juego creado por Marquez Camila Araceli</span>
+      <a href="https://www.instagram.com/marquecami/#" target="_blank" rel="noopener noreferrer">@marquecami</a>
+    </div>
+  </div>
+
+  <!-- LOSE -->
+  <div class="view" id="view-lose">
+    <div class="title-line2 pixel" style="color:var(--danger);text-shadow:0 0 18px var(--danger);">SE ROMPIÓ EL ALGORITMO</div>
+    <div id="score-final-lose" class="pixel" style="color:var(--repetitiva);font-size:clamp(14px,2.6vw,20px);">PUNTAJE: 0</div>
+    <p class="subtitle">Perdiste tus 3 vidas. Recordá: antes de escribir código, hay que entender el problema y pensar la estrategia.</p>
+    <div class="menu-col">
+      <button class="arcade-btn" id="btn-retry">🔁 REINTENTAR</button>
+      <button class="arcade-btn ghost" data-back="start">🏠 MENÚ PRINCIPAL</button>
+    </div>
+  </div>
+
+  <div id="scanlines"></div>
+  <div id="vignette"></div>
+  <div id="flicker"></div>
+</div>
+</div>
+
+<script>
+/* =====================================================
+   ICONOS SVG por categoría (se muestran al revelar respuesta)
+   ===================================================== */
+const ICONS = {
+  secuencial:`<rect x="15" y="55" width="90" height="10" rx="5" fill="#5ad1ff"/><circle cx="20" cy="60" r="8" fill="#5ad1ff"/><circle cx="60" cy="60" r="8" fill="#5ad1ff"/><circle cx="100" cy="60" r="8" fill="#5ad1ff"/>`,
+  condicional:`<polygon points="60,15 100,60 60,105 20,60" fill="none" stroke="#ff7a3d" stroke-width="6"/><text x="60" y="68" font-size="26" text-anchor="middle" fill="#ff7a3d">?</text>`,
+  repetitiva:`<path d="M75,25 a35,35 0 1,1 -35,35" fill="none" stroke="#ffcc33" stroke-width="8"/><polygon points="70,10 90,25 70,40" fill="#ffcc33"/>`,
+  ovalo:`<ellipse cx="60" cy="60" rx="46" ry="28" fill="none" stroke="#5ad1ff" stroke-width="6"/><text x="60" y="66" font-size="13" text-anchor="middle" fill="#5ad1ff">INICIO/FIN</text>`,
+  rectangulo:`<rect x="18" y="38" width="84" height="44" fill="none" stroke="#5ad1ff" stroke-width="6"/><text x="60" y="64" font-size="13" text-anchor="middle" fill="#5ad1ff">PROCESO</text>`,
+  rombo:`<polygon points="60,12 108,60 60,108 12,60" fill="none" stroke="#ff7a3d" stroke-width="6"/><text x="60" y="66" font-size="13" text-anchor="middle" fill="#ff7a3d">DECISIÓN</text>`,
+  preciso:`<circle cx="60" cy="60" r="42" fill="none" stroke="#5ad1ff" stroke-width="4"/><circle cx="60" cy="60" r="26" fill="none" stroke="#5ad1ff" stroke-width="4"/><circle cx="60" cy="60" r="7" fill="#5ad1ff"/>`,
+  definido:`<rect x="25" y="42" width="70" height="12" fill="#ffcc33"/><rect x="25" y="66" width="70" height="12" fill="#ffcc33"/>`,
+  finito:`<circle cx="60" cy="60" r="42" fill="none" stroke="#ff7a3d" stroke-width="6"/><rect x="70" y="20" width="18" height="14" fill="#ff7a3d"/>`
+};
+
+/* =====================================================
+   PREGUNTAS — basadas en el contenido de las clases 1, 2 y 3
+   ===================================================== */
+const CAT_LABEL = {secuencial:"Secuencial",condicional:"Condicional",repetitiva:"Repetitiva",ovalo:"Óvalo (Terminal)",rectangulo:"Rectángulo (Proceso)",rombo:"Rombo (Decisión)",preciso:"Preciso",definido:"Definido",finito:"Finito"};
+
+const STRUCT_OPTS = ["secuencial","condicional","repetitiva"];
+const SYMBOL_OPTS = ["ovalo","rectangulo","rombo"];
+const RULE_OPTS = ["preciso","definido","finito"];
+
+const QUESTIONS = [
+{cat:STRUCT_OPTS, correct:"secuencial",
+  clue:"Ingredientes → Preparación → Cocción. Sigo una receta paso a paso, uno detrás del otro, sin saltos.",
+  hint:"Es el camino directo: una instrucción detrás de la otra.",
+  explain:"Es una Secuencia: acciones ordenadas una tras otra, como seguir una receta."},
+{cat:STRUCT_OPTS, correct:"condicional",
+  clue:"SI el depósito está vacío, ENTONCES lleno con 500ml de agua. Si no, sigo directo.",
+  hint:"Hay una pregunta cerrada (Sí/No) que decide el camino.",
+  explain:"Es una Condicional: ejecuta una acción solo si se cumple una condición."},
+{cat:STRUCT_OPTS, correct:"repetitiva",
+  clue:"Revisar la agenda el lunes, el martes, el miércoles... mientras queden días en la semana.",
+  hint:"La misma acción se repite hasta cumplir un objetivo.",
+  explain:"Es una Repetitiva (bucle): multiplica una acción hasta que se cumple la condición de corte."},
+{cat:STRUCT_OPTS, correct:"condicional",
+  clue:"¿Presupuesto mayor a $1000? Si es SÍ, reservo un vuelo. Si es NO, viajo en autobús terrestre.",
+  hint:"El programa elige entre dos caminos alternativos según una condición.",
+  explain:"Es una Condicional: bifurca el camino según si el presupuesto supera o no el límite."},
+{cat:STRUCT_OPTS, correct:"secuencial",
+  clue:"Colocar filtro de papel → añadir 15g de café → presionar encendido → esperar que gotee → FIN.",
+  hint:"No hay preguntas ni repeticiones, solo pasos en orden.",
+  explain:"Es una Secuencia: un procedimiento lineal, paso uno, paso dos, paso tres."},
+{cat:STRUCT_OPTS, correct:"repetitiva",
+  clue:"Contar 1... 2... 3... hasta que la condición se cumpla, y recién ahí detener la acción.",
+  hint:"Pregunta detonante: '¿ya terminé la tarea?'",
+  explain:"Es una Repetitiva: el motor de la automatización, se detiene solo cuando se alcanza el objetivo."},
+{cat:STRUCT_OPTS, correct:"condicional",
+  clue:"Pregunta detonante de esta estructura: '¿Es esto verdad en este momento?' Firma visual: una bifurcación (rombo).",
+  hint:"Su propósito es elegir un camino alternativo.",
+  explain:"Es una Condicional: evalúa una condición del entorno antes de actuar."},
+{cat:STRUCT_OPTS, correct:"repetitiva",
+  clue:"Pregunta detonante de esta estructura: '¿Ya terminé la tarea?' Firma visual: un circuito cerrado (bucle).",
+  hint:"Su propósito es multiplicar una acción.",
+  explain:"Es una Repetitiva: ejecuta la misma acción varias veces hasta cumplir el objetivo."},
+{cat:SYMBOL_OPTS, correct:"ovalo",
+  clue:"Este símbolo marca el Inicio o el Fin absoluto del algoritmo: los límites fronterizos de la solución.",
+  hint:"Tiene forma redondeada, como una pista de atletismo.",
+  explain:"Es el Óvalo - Terminal: marca el inicio o fin del algoritmo."},
+{cat:SYMBOL_OPTS, correct:"rectangulo",
+  clue:"Este símbolo representa una acción, cálculo o instrucción concreta, como 'Añadir 15g de café'.",
+  hint:"Tiene forma de caja con cuatro lados rectos.",
+  explain:"Es el Rectángulo - Proceso: representa una acción o instrucción."},
+{cat:SYMBOL_OPTS, correct:"rombo",
+  clue:"Este símbolo es el punto de evaluación lógica: formula una pregunta cerrada (Sí/No) que bifurca el camino.",
+  hint:"Tiene forma de diamante.",
+  explain:"Es el Rombo - Decisión: el punto donde el algoritmo evalúa una condición."},
+{cat:RULE_OPTS, correct:"preciso",
+  clue:"Regla de oro: cada paso del algoritmo debe indicar la acción a realizar sin dejar lugar a dobles interpretaciones.",
+  hint:"Tiene que ver con la claridad de cada instrucción.",
+  explain:"Es la regla de ser Preciso: sin ambigüedad posible en ningún paso."},
+{cat:RULE_OPTS, correct:"definido",
+  clue:"Regla de oro: si se sigue el algoritmo dos veces con los mismos datos de entrada, debe producir siempre el mismo resultado.",
+  hint:"Tiene que ver con la repetibilidad del resultado.",
+  explain:"Es la regla de estar Definido: mismos datos, mismo resultado, siempre."},
+{cat:RULE_OPTS, correct:"finito",
+  clue:"Regla de oro: por muy complejo que sea, el algoritmo debe tener un número determinado de pasos y un final claro.",
+  hint:"Tiene que ver con que el algoritmo no se ejecute para siempre.",
+  explain:"Es la regla de ser Finito: siempre debe terminar."},
+{cat:STRUCT_OPTS, correct:"condicional",
+  clue:"SI llueve, ENTONCES llevo paraguas. SI NO, llevo anteojos de sol.",
+  hint:"Es el clásico ejemplo del rombo '¿Llueve?'.",
+  explain:"Es una Condicional: el algoritmo cobra vida evaluando el entorno y alterando el flujo de acción."}
+];
+
+/* =====================================================
+   ENCICLOPEDIA / GLOSARIO
+   ===================================================== */
+const ENC = [
+{name:"Algoritmo",icono:ICONS.definido,titulo:"El puente entre la mente y la máquina",
+  info:"Un algoritmo es una secuencia ordenada, finita y bien definida de pasos diseñados para resolver un problema específico. Es el puente entre nuestra lógica humana (no lineal, intuitiva) y la ejecución de la máquina (literal, sin contexto)."},
+{name:"Pensamiento Lógico",icono:`<circle cx="60" cy="60" r="10" fill="#5ad1ff"/><circle cx="30" cy="30" r="8" fill="#ff7a3d"/><circle cx="90" cy="30" r="8" fill="#ffcc33"/><circle cx="30" cy="90" r="8" fill="#ffcc33"/><circle cx="90" cy="90" r="8" fill="#ff7a3d"/><line x1="60" y1="60" x2="30" y2="30" stroke="#5ad1ff" stroke-width="3"/><line x1="60" y1="60" x2="90" y2="30" stroke="#5ad1ff" stroke-width="3"/><line x1="60" y1="60" x2="30" y2="90" stroke="#5ad1ff" stroke-width="3"/><line x1="60" y1="60" x2="90" y2="90" stroke="#5ad1ff" stroke-width="3"/>`,
+  titulo:"Observar, Reconocer, Conectar, Decidir",
+  info:"Es la base de la informática: observar la situación inicial, reconocer los elementos principales, establecer las relaciones lógicas entre ellos y tomar decisiones fundamentadas para avanzar hacia la solución."},
+{name:"Pensamiento Computacional",icono:`<rect x="20" y="20" width="30" height="30" fill="none" stroke="#ffcc33" stroke-width="4"/><rect x="70" y="20" width="30" height="30" fill="none" stroke="#ffcc33" stroke-width="4"/><rect x="20" y="70" width="30" height="30" fill="none" stroke="#ffcc33" stroke-width="4"/><rect x="70" y="70" width="30" height="30" fill="none" stroke="#ffcc33" stroke-width="4"/>`,
+  titulo:"Dividir para conquistar",
+  info:"Una forma sistemática de abordar problemas complejos dividiéndolos en partes más pequeñas y manejables, para diseñar algoritmos específicos para cada micro-problema y luego integrarlos en una solución total."},
+{name:"Estructura Secuencial",icono:ICONS.secuencial,titulo:"El camino directo",
+  info:"Ejecuta las instrucciones una detrás de otra, en el mismo orden en que fueron escritas. Es la forma más simple de moldear la información: paso uno, paso dos, paso tres."},
+{name:"Estructura Condicional",icono:ICONS.condicional,titulo:"El arte de decidir",
+  info:"Ejecuta una acción solamente si se cumple una condición determinada, permitiendo que el programa elija su propio camino fundamentado en datos. Pregunta detonante: '¿es esto verdad en este momento?'"},
+{name:"Estructura Repetitiva (Bucle)",icono:ICONS.repetitiva,titulo:"El motor de la automatización",
+  info:"Ejecuta la misma acción o secuencia múltiples veces, deteniéndose únicamente cuando se alcanza un objetivo específico. Pregunta detonante: '¿ya terminé la tarea?'"},
+{name:"Diagrama de Flujo",icono:`<rect x="45" y="10" width="30" height="18" rx="9" fill="none" stroke="#5ad1ff" stroke-width="4"/><rect x="45" y="45" width="30" height="20" fill="none" stroke="#5ad1ff" stroke-width="4"/><polygon points="60,80 78,95 60,110 42,95" fill="none" stroke="#ff7a3d" stroke-width="4"/>`,
+  titulo:"Lenguaje visual, universal y agnóstico",
+  info:"Representación gráfica de la lógica de un algoritmo, usando óvalos, rectángulos y rombos conectados por flechas. Mapea visualmente la trayectoria cognitiva, independiente del lenguaje de programación que se use después."},
+{name:"Pseudocódigo",icono:`<rect x="15" y="20" width="90" height="80" fill="none" stroke="#ffcc33" stroke-width="3"/><line x1="25" y1="35" x2="95" y2="35" stroke="#ffcc33" stroke-width="3"/><line x1="25" y1="50" x2="95" y2="50" stroke="#ffcc33" stroke-width="3"/><line x1="25" y1="65" x2="80" y2="65" stroke="#ffcc33" stroke-width="3"/>`,
+  titulo:"Lenguaje Natural Estructurado",
+  info:"Usa el lenguaje cotidiano (INICIO, SI...ENTONCES, MIENTRAS, FIN) pero forzando una estructura rígida y condicional, como paso previo a escribir código real."},
+{name:"Las 3 Reglas de Oro",icono:`<circle cx="30" cy="60" r="18" fill="none" stroke="#5ad1ff" stroke-width="4"/><rect x="52" y="42" width="16" height="36" fill="none" stroke="#ffcc33" stroke-width="4"/><circle cx="90" cy="60" r="18" fill="none" stroke="#ff7a3d" stroke-width="4"/>`,
+  titulo:"Preciso · Definido · Finito",
+  info:"Un algoritmo robusto debe ser Preciso (cada paso sin dobles interpretaciones), Definido (mismos datos, mismo resultado siempre) y Finito (un número determinado de pasos y un final claro)."},
+{name:"Símbolos del Diagrama",icono:`<ellipse cx="30" cy="30" rx="18" ry="12" fill="none" stroke="#5ad1ff" stroke-width="3"/><rect x="15" y="55" width="30" height="20" fill="none" stroke="#5ad1ff" stroke-width="3"/><polygon points="90,20 105,35 90,50 75,35" fill="none" stroke="#ff7a3d" stroke-width="3"/>`,
+  titulo:"Óvalo · Rectángulo · Rombo",
+  info:"Óvalo = Terminal (inicio/fin). Rectángulo = Proceso (una acción o instrucción). Rombo = Decisión (una pregunta Sí/No que bifurca el camino del algoritmo)."}
+];
+
+/* =====================================================
+   AUDIO — chiptune 16-bit sintetizado con Web Audio API
+   ===================================================== */
+let actx=null, musicOn=true, musicTimer=null, musicStep=0;
+function ensureAudio(){ if(!actx){ actx = new (window.AudioContext||window.webkitAudioContext)(); } if(actx.state==='suspended'){actx.resume();} }
+function beep(freq,dur,type='square',vol=0.08,when=0){
+  if(!actx) return;
+  const t0=actx.currentTime+when;
+  const osc=actx.createOscillator();
+  const gain=actx.createGain();
+  osc.type=type; osc.frequency.setValueAtTime(freq,t0);
+  gain.gain.setValueAtTime(0,t0);
+  gain.gain.linearRampToValueAtTime(vol,t0+0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+  osc.connect(gain); gain.connect(actx.destination);
+  osc.start(t0); osc.stop(t0+dur+0.02);
+}
+function sfxClick(){ beep(660,0.06,'square',0.05); }
+function sfxCorrect(){ [523,659,784,1046].forEach((f,i)=>beep(f,0.14,'square',0.07,i*0.09)); }
+function sfxWrong(){ beep(160,0.25,'sawtooth',0.09); beep(110,0.3,'sawtooth',0.08,0.05); }
+function sfxWin(){ [523,659,784,1046,1318].forEach((f,i)=>beep(f,0.22,'triangle',0.08,i*0.14)); setTimeout(()=>[784,1046,1568].forEach((f,i)=>beep(f,0.35,'square',0.07,i*0.12)),900); }
+function sfxTick(){ beep(880,0.05,'square',0.04); }
+
+const MELODY = [392,440,494,440,392,349,392,440,494,523,494,440,392,370,349,330];
+function startMusic(){
+  stopMusic();
+  if(!musicOn || !actx) return;
+  musicStep=0;
+  musicTimer=setInterval(()=>{
+    const f=MELODY[musicStep%MELODY.length];
+    beep(f,0.18,'triangle',0.035);
+    beep(f/2,0.18,'square',0.02);
+    musicStep++;
+  },220);
+}
+function stopMusic(){ if(musicTimer){clearInterval(musicTimer);musicTimer=null;} }
+
+document.getElementById('mute-toggle').addEventListener('click',()=>{
+  musicOn=!musicOn;
+  document.getElementById('mute-toggle').textContent = musicOn ? '🔊' : '🔇';
+  if(musicOn){ ensureAudio(); startMusic(); } else { stopMusic(); }
+});
+
+/* =====================================================
+   NAVEGACIÓN
+   ===================================================== */
+function showView(id){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+id).classList.add('active');
+}
+document.querySelectorAll('[data-back]').forEach(b=>{
+  b.addEventListener('click',()=>{ sfxClick(); showView(b.dataset.back); if(b.dataset.back==='start'){ stopMusic(); } });
+});
+document.getElementById('btn-play').addEventListener('click',()=>{ ensureAudio(); sfxClick(); startMusic(); startGame(); });
+document.getElementById('btn-howto').addEventListener('click',()=>{ ensureAudio(); sfxClick(); showView('howto'); });
+document.getElementById('btn-enc').addEventListener('click',()=>{ ensureAudio(); sfxClick(); buildEncyclopedia(); showView('enc'); });
+document.getElementById('btn-play-again').addEventListener('click',()=>{ sfxClick(); startGame(); });
+document.getElementById('btn-retry').addEventListener('click',()=>{ sfxClick(); startGame(); });
+
+/* =====================================================
+   ENCICLOPEDIA
+   ===================================================== */
+function buildEncyclopedia(){
+  const grid=document.getElementById('enc-grid');
+  grid.innerHTML='';
+  ENC.forEach(p=>{
+    const card=document.createElement('button');
+    card.className='enc-card';
+    card.innerHTML=`<svg viewBox="0 0 120 120">${p.icono}</svg><div class="name">${p.name}</div>`;
+    card.addEventListener('click',()=>{ sfxClick(); openEncModal(p); });
+    grid.appendChild(card);
+  });
+}
+function openEncModal(p){
+  const box=document.getElementById('enc-modal-box');
+  box.innerHTML=`<svg viewBox="0 0 120 120">${p.icono}</svg>
+    <h2>${p.name.toUpperCase()}</h2>
+    <h3>${p.titulo}</h3>
+    <p>${p.info}</p>
+    <button class="arcade-btn" style="margin-top:14px;" id="enc-close">CERRAR</button>`;
+  document.getElementById('enc-modal').classList.add('active');
+  document.getElementById('enc-close').addEventListener('click',()=>{ sfxClick(); document.getElementById('enc-modal').classList.remove('active'); });
+}
+document.getElementById('enc-modal').addEventListener('click',(e)=>{
+  if(e.target.id==='enc-modal'){ document.getElementById('enc-modal').classList.remove('active'); }
+});
+
+/* =====================================================
+   JUEGO
+   ===================================================== */
+let gameState={};
+function shuffle(arr){ const a=[...arr]; for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+function startGame(){
+  const order = shuffle(QUESTIONS.map((_,i)=>i));
+  gameState={ order, idx:0, lives:3, score:0, wrongCount:0, timer:null, timeLeft:30, hintUsed:false };
+  showView('game');
+  updateHUD();
+  loadQuestion();
+}
+
+function updateHUD(){
+  document.getElementById('hud-round').textContent = (gameState.idx+1)+'/'+gameState.order.length;
+  document.getElementById('hud-score').textContent = gameState.score;
+  document.getElementById('hud-lives').textContent = '❤'.repeat(gameState.lives) || '—';
+}
+
+function currentQuestion(){ return QUESTIONS[gameState.order[gameState.idx]]; }
+
+function loadQuestion(){
+  const q=currentQuestion();
+  gameState.wrongCount=0; gameState.hintUsed=false;
+  document.getElementById('clue-stage').textContent = 'EXPEDIENTE '+(gameState.idx+1)+' DE '+gameState.order.length;
+  document.getElementById('clue-icon').innerHTML = `<circle cx="60" cy="60" r="45" fill="none" stroke="#c9b98a" stroke-width="4"/><text x="60" y="72" font-size="40" text-anchor="middle" fill="#c9b98a">?</text>`;
+  document.getElementById('clue-icon').classList.remove('revealed');
+  document.getElementById('clue-text').textContent = q.clue;
+  document.getElementById('clue-feedback').textContent='';
+  document.getElementById('clue-feedback').className='';
+  document.getElementById('hint-btn').disabled=false;
+  document.getElementById('hint-btn').style.opacity=1;
+
+  const panel=document.getElementById('answer-panel');
+  panel.innerHTML='';
+  const opts = shuffle(q.cat);
+  opts.forEach(key=>{
+    const btn=document.createElement('button');
+    btn.className='ans-btn';
+    btn.dataset.key=key;
+    btn.textContent = CAT_LABEL[key];
+    btn.addEventListener('click',()=>onAnswerClick(key,btn));
+    panel.appendChild(btn);
+  });
+
+  startTimer();
+  updateHUD();
+}
+
+document.getElementById('hint-btn').addEventListener('click',()=>{
+  sfxClick();
+  gameState.hintUsed=true;
+  const q=currentQuestion();
+  document.getElementById('clue-feedback').textContent='📍 '+q.hint;
+  document.getElementById('clue-feedback').className='';
+  document.getElementById('hint-btn').disabled=true;
+  document.getElementById('hint-btn').style.opacity=0.5;
+});
+
+function startTimer(){
+  clearInterval(gameState.timer);
+  gameState.timeLeft=30;
+  document.getElementById('timerbar').style.width='100%';
+  gameState.timer=setInterval(()=>{
+    gameState.timeLeft--;
+    document.getElementById('timerbar').style.width=(gameState.timeLeft/30*100)+'%';
+    if(gameState.timeLeft<=8 && gameState.timeLeft>0){ sfxTick(); }
+    if(gameState.timeLeft<=0){
+      clearInterval(gameState.timer);
+      loseLife("¡Se acabó el tiempo!");
+    }
+  },1000);
+}
+
+function onAnswerClick(key,btnEl){
+  if(document.getElementById('clue-feedback').classList.contains('ok')) return;
+  const q=currentQuestion();
+  sfxClick();
+  if(key===q.correct){
+    clearInterval(gameState.timer);
+    btnEl.classList.add('correct');
+    document.getElementById('clue-icon').innerHTML = ICONS[q.correct];
+    document.getElementById('clue-icon').classList.add('revealed');
+    let pts = 100 - gameState.wrongCount*20 - (gameState.hintUsed?20:0);
+    pts = Math.max(pts,20) + Math.max(gameState.timeLeft,0);
+    gameState.score += pts;
+    document.getElementById('clue-feedback').textContent = '✔ ¡CORRECTO! '+CAT_LABEL[q.correct];
+    document.getElementById('clue-feedback').className='ok';
+    document.getElementById('clue-text').textContent = q.explain;
+    document.querySelectorAll('.ans-btn').forEach(b=>b.disabled=true);
+    sfxCorrect();
+    updateHUD();
+    setTimeout(()=>{
+      gameState.idx++;
+      if(gameState.idx>=gameState.order.length){ finishWin(); }
+      else{ loadQuestion(); }
+    },2600);
+  } else {
+    btnEl.classList.add('wrong');
+    setTimeout(()=>btnEl.classList.remove('wrong'),350);
+    gameState.wrongCount++;
+    sfxWrong();
+    document.getElementById('screen').classList.add('shake');
+    setTimeout(()=>document.getElementById('screen').classList.remove('shake'),350);
+    gameState.timeLeft = Math.max(gameState.timeLeft-6,0);
+    document.getElementById('clue-feedback').textContent = '✘ No es esa. ¡Probá de nuevo!';
+    document.getElementById('clue-feedback').className='bad';
+    if(gameState.wrongCount>=3){ loseLife("Demasiados intentos fallidos."); }
+  }
+}
+
+function loseLife(reason){
+  clearInterval(gameState.timer);
+  gameState.lives--;
+  updateHUD();
+  document.getElementById('clue-feedback').textContent = '⚠ '+reason;
+  document.getElementById('clue-feedback').className='bad';
+  sfxWrong();
+  if(gameState.lives<=0){
+    setTimeout(()=>finishLose(),1200);
+  } else {
+    setTimeout(()=>{ gameState.wrongCount=0; startTimer(); },1400);
+  }
+}
+
+function finishWin(){
+  stopMusic();
+  sfxWin();
+  document.getElementById('score-final').textContent='PUNTAJE: '+gameState.score;
+  document.getElementById('win-text').innerHTML =
+    `<p>Superaste todos los expedientes: entendiste cómo la Secuencia, la Condicional y la Repetitiva son el ADN oculto de todo el software, desde una calculadora hasta la inteligencia artificial más avanzada.</p>
+     <p style="margin-top:10px;font-style:italic;color:var(--secuencial);">📜 "El pensamiento es la estrategia; el algoritmo es el mapa."</p>`;
+  showView('win');
+  launchConfetti();
+}
+
+function finishLose(){
+  stopMusic();
+  document.getElementById('score-final-lose').textContent='PUNTAJE: '+gameState.score;
+  showView('lose');
+}
+
+function launchConfetti(){
+  const colors=['#5ad1ff','#ffcc33','#f4ecd8','#ff7a3d','#38f89a'];
+  const screen=document.getElementById('screen');
+  for(let i=0;i<60;i++){
+    const c=document.createElement('div');
+    c.className='confetti-piece';
+    c.style.left=Math.random()*100+'%';
+    c.style.background=colors[Math.floor(Math.random()*colors.length)];
+    c.style.animationDuration=(2+Math.random()*2)+'s';
+    c.style.animationDelay=(Math.random()*1.2)+'s';
+    screen.appendChild(c);
+    setTimeout(()=>c.remove(),4200);
+  }
+}
+</script>
+</body>
+</html>
